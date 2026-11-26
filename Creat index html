@@ -35,7 +35,7 @@ button.secondary { background: #444; margin-top: 8px; }
 <button class="secondary" onclick="syncPending()">مزامنة الآن</button>
 </div>
 <script>
-const WEBHOOK_URL = 'ضع_رابط_الويب_هوك_او_Apps_Script_هنا';
+const WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbzhZvYNWSexTzWP8gQGzayesZ0Hp8D4Gjnau4tiXX2TJO_NNRDKQPYjlQ9nZzM1caQ6/exec';
 const STORAGE_KEY = 'pending_student_records_v1';
 function getQueue() {
 return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
