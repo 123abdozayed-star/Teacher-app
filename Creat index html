@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>تسجيل الطلاب</title>
+<link rel="manifest" href="./manifest.json" />
+<style>
+body { font-family: Tahoma, Arial, sans-serif; margin: 20px; background: #f7f9fc; }
+.card { max-width: 480px; margin: auto; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+label { display: block; margin-top: 12px; font-weight: bold; }
+select, button { width: 100%; padding: 10px; margin-top: 6px; font-size: 15px; border-radius: 6px; border: 1px solid #ccc; }
+button { background: #1a73e8; color: #fff; border: none; cursor: pointer; margin-top: 16px; }
+button.secondary { background: #444; margin-top: 8px; }
+.status { margin-top: 12px; padding: 10px; border-radius: 6px; background: #eef3fb; font-size: 14px; }
+</style>
+</head>
+<body>
+<div class="card">
+<h2>تسجيل متابعة الطالب</h2>
+<div class="status" id="netStatus">جاري فحص الاتصال...</div>
+<div class="status" id="queueStatus">السجلات المنتظرة للإرسال: 0</div>
+<label for="student">اختر الطالب</label>
+<select id="student">
+<option value="أحمد محمود">أحمد محمود</option>
+<option value="سارة علي">سارة علي</option>
+</select>
+<label for="level">اختر المستوى / الخيار</label>
+<select id="level">
+<option value="ممتاز">ممتاز</option>
+<option value="جيد جداً">جيد جداً</option>
+<option value="يحتاج متابعة">يحتاج متابعة</option>
+</select>
+<button onclick="saveRecord()">حفظ التسجيل</button>
+<button class="secondary" onclick="syncPending()">مزامنة الآن</button>
+</div>
+<script>
+const WEBHOOK_URL = 'ضع_رابط_الويب_هوك_او_Apps_Script_هنا';
+const STORAGE_KEY = 'pending_student_records_v1';
+function getQueue() {
+return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+}
+function setQueue(list) {
+localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+updateUI();
+}
+function updateUI() {
+const online = navigator.onLine;
+document.getElementById('netStatus').textContent = online
+? 'الحالة: متصل بالإنترنت'
+: 'الحالة: غير متصل (سيتم الحفظ محلياً)';
+const queue = getQueue();
+document.getElementById('queueStatus').textContent =
+'السجلات المنتظرة للإرسال: ' + queue.length;
+}
+function saveRecord() {
+const record = {
+student: document.getElementById('student').value,
+level: document.getElementById('level').value,
+createdAt: new Date().toISOString()
+};
+const queue = getQueue();
+queue.push(record);
+setQueue(queue);
+if (navigator.onLine) {
+syncPending();
+} else {
+alert('تم الحفظ على الجهاز، وسيتم الإرسال تلقائياً عند عودة الإنترنت.');
+}
+}
+async function syncPending() {
+if (!navigator.onLine) return;
+const queue = getQueue();
+if (queue.length === 0) return;
+const remaining = [];
+for (const item of queue) {
+try {
+const res = await fetch(WEBHOOK_URL, {
+method: 'POST',
+headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify(item)
+});
+if (!res.ok) remaining.push(item);
+} catch (err) {
+remaining.push(item);
+}
+}
+setQueue(remaining);
+}
+window.addEventListener('online', () => {
+updateUI();
+syncPending();
+});
+window.addEventListener('offline', updateUI);
+if ('serviceWorker' in navigator) {
+navigator.serviceWorker.register('./sw.js');
+}
+updateUI();
+syncPending();
+</script>
+</body>
+</html>
+
